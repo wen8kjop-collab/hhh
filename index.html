@@ -8,9 +8,9 @@
     <link rel="manifest" href="/manifest.json">
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe-ar/dist/aframe-ar.min.js"></script>
-
-        <style>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe-ar/dist/aframe-ar.min.js"></script>     
+        
+    <style>
         /* 引入自定义字体，增加科技感 */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
         
@@ -148,6 +148,75 @@
         #ar-loading-overlay h2 {
             font-size: 1.8em;
             margin-bottom: 10px;
+        }
+            /* 奖励卡片样式 */
+        #reward-card-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none; /* 默认隐藏 */
+            justify-content: center;
+            align-items: center;
+            z-index: 10003;
+        }
+        #reward-card {
+            background: #1a2a35; /* 深色背景 */
+            color: #e5f4fb;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 350px;
+            text-align: center;
+            border: 2px solid #00bfff;
+            box-shadow: 0 0 30px rgba(0, 191, 255, 0.5);
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #close-reward-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 2em;
+            cursor: pointer;
+            color: #ff4500;
+        }
+        .reward-content {
+            margin: 20px 0;
+            padding: 15px;
+            background: #0d1a26;
+            border-radius: 10px;
+        }
+        .coupon-code {
+            margin-top: 15px;
+            border-top: 1px dashed #00bfff;
+            padding-top: 10px;
+        }
+        #reward-code {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #34c759; /* 绿色突出 */
+            margin: 5px 0 0;
+        }
+        #reward-action-btn {
+            display: block;
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #34c759;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #reward-action-btn:hover {
+            background-color: #2b9942;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
         }
     </style>
 
@@ -439,7 +508,22 @@
         // 退出按钮默认为普通退出
         exitAR(false); 
     });
-</script>
+</script><div id="reward-card-overlay">
+    <div id="reward-card">
+        <span id="close-reward-btn">&times;</span>
+        <h2>🎉 任务完成！获得奖励！</h2>
+        <div class="reward-content">
+            <h3 id="reward-name">任务奖励：</h3>
+            <p id="reward-description">恭喜您完成所有任务！</p>
+            <div class="coupon-code">
+                <p>专属兑换码：</p>
+                <p id="reward-code">FLEX-873-ARX</p>
+            </div>
+        </div>
+        <a id="reward-action-btn" href="#" target="_blank">立即查看/兑换</a>
+    </div>
+</div>
+
 
 </body>
 </html>
