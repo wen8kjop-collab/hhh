@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1,
+        "name": "入口导览机器人",
+        "description": "点击查看商圈活动介绍！",
+        "lat": 23.324856,
+        "lon": 112.707622,
+        "model_src": "#robot-model",
+        "text_content": "任务 1: 欢迎来到柔性舱体验！"
+    },
+    {
+        "id": 2,
+        "name": "咖啡店优惠券",
+        "description": "恭喜获得一杯免费咖啡券！",
+        "lat": 23.324857,
+        "lon": 112.707623,
+        "model_src": "#cube-model",
+        "text_content": "任务 2: 限时优惠，咖啡买一送一！"
+    }
+]
