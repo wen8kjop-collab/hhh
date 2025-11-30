@@ -8,8 +8,8 @@
     <link rel="manifest" href="/manifest.json">
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe-ar/dist/aframe-ar.min.js"></script>     
-        
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe-ar/dist/aframe-ar.min.js"></script>
+
     <style>
         /* 引入自定义字体，增加科技感 */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
@@ -149,7 +149,8 @@
             font-size: 1.8em;
             margin-bottom: 10px;
         }
-            /* 奖励卡片样式 */
+
+        /* 奖励卡片样式 (MVP 5.0) */
         #reward-card-overlay {
             position: fixed;
             top: 0;
@@ -219,7 +220,6 @@
             to { opacity: 1; transform: scale(1); }
         }
     </style>
-
 </head>
 <body>
 
@@ -251,6 +251,22 @@
         </a-assets>
         </a-scene>
     <button id="exit-ar-btn">退出 AR</button>
+</div>
+
+<div id="reward-card-overlay">
+    <div id="reward-card">
+        <span id="close-reward-btn">&times;</span>
+        <h2>🎉 任务完成！获得奖励！</h2>
+        <div class="reward-content">
+            <h3 id="reward-name">任务奖励：</h3>
+            <p id="reward-description">恭喜您完成所有任务！</p>
+            <div class="coupon-code">
+                <p>专属兑换码：</p>
+                <p id="reward-code">FLEX-873-ARX</p>
+            </div>
+        </div>
+        <a id="reward-action-btn" href="#" target="_blank">立即查看/兑换</a>
+    </div>
 </div>
 
 <script>
@@ -368,47 +384,19 @@
     }
     
     // ==========================================================
-// 5.6 奖励卡片显示函数 (替换为显示 H5 卡片)
-// ==========================================================
-function showRewardCard(message, taskName) {
-    // 1. 设置卡片内容
-    document.getElementById('reward-name').textContent = `任务：${taskName}`;
-    document.getElementById('reward-description').textContent = message;
-    
-    // 随机生成一个奖励码 (真实项目中会从后端API获取)
-    const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
-    document.getElementById('reward-code').textContent = randomCode;
-    
-    // 2. 显示卡片 (将display设置为flex)
-    document.getElementById('reward-card-overlay').style.display = 'flex';
-}
-
-function showRewardCard(message, taskName) { // 
-    // 1. 设置卡片内容
-    document.getElementById('reward-name').textContent = `任务：${taskName}`;
-    document.getElementById('reward-description').textContent = message;
-    
-    // 随机生成一个奖励码
-    const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
-    document.getElementById('reward-code').textContent = randomCode;
-    
-    // 2. 显示卡片 (将display设置为flex)
-    document.getElementById('reward-card-overlay').style.display = 'flex';
-} // 
-    // 1. 设置卡片内容
-    document.getElementById('reward-name').textContent = `任务：${taskName}`;
-    document.getElementById('reward-description').textContent = message;
-    
-    // 随机生成一个奖励码 (真实项目中会从后端API获取)
-    const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
-    document.getElementById('reward-code').textContent = randomCode;
-    
-    // 2. 显示卡片 (将display设置为flex)
-    document.getElementById('reward-card-overlay').style.display = 'flex';
-}
- {
-        // 实际项目中可以替换为一个漂亮的 DIV 弹窗或 H5 奖励页面
-        alert(`【任务奖励】\n恭喜您完成任务 [${taskName}]！\n奖励内容：${message}`);
+    // 5.6 奖励卡片显示函数 (替换为显示 H5 卡片)
+    // ==========================================================
+    function showRewardCard(message, taskName) {
+        // 1. 设置卡片内容
+        document.getElementById('reward-name').textContent = `任务：${taskName}`;
+        document.getElementById('reward-description').textContent = message;
+        
+        // 随机生成一个奖励码 (真实项目中会从后端API获取)
+        const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
+        document.getElementById('reward-code').textContent = randomCode;
+        
+        // 2. 显示卡片 (将display设置为flex)
+        document.getElementById('reward-card-overlay').style.display = 'flex';
     }
 
     // ==========================================================
@@ -538,37 +526,18 @@ function showRewardCard(message, taskName) { //
     }
 
     window.onload = startGeolocation;
-        // 新增：监听奖励卡片的关闭按钮
-    document.getElementById('close-reward-btn').addEventListener('click', function() {
-        document.getElementById('reward-card-overlay').style.display = 'none';
-    });
-
 
     document.getElementById('ar-button').addEventListener('click', startAR);
     document.getElementById('exit-ar-btn').addEventListener('click', function() {
         // 退出按钮默认为普通退出
         exitAR(false); 
     });
+
     // 新增：监听奖励卡片的关闭按钮
     document.getElementById('close-reward-btn').addEventListener('click', function() {
         document.getElementById('reward-card-overlay').style.display = 'none';
     });
-</script><div id="reward-card-overlay">
-    <div id="reward-card">
-        <span id="close-reward-btn">&times;</span>
-        <h2>🎉 任务完成！获得奖励！</h2>
-        <div class="reward-content">
-            <h3 id="reward-name">任务奖励：</h3>
-            <p id="reward-description">恭喜您完成所有任务！</p>
-            <div class="coupon-code">
-                <p>专属兑换码：</p>
-                <p id="reward-code">FLEX-873-ARX</p>
-            </div>
-        </div>
-        <a id="reward-action-btn" href="#" target="_blank">立即查看/兑换</a>
-    </div>
-</div>
-
+</script>
 
 </body>
 </html>
