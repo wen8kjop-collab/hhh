@@ -111,4 +111,463 @@
         /* 关键帧动画 */
         @keyframes pulse {
             0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.01); opacity:
+            100% { transform: scale(1.01); opacity: 0.95; }
+        }
+
+        /* AR 场景和加载提示样式 */
+        #ar-scene-container { position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; display:none; }
+        #exit-ar-btn { 
+            position: absolute; 
+            top: 40px; 
+            left: 20px; 
+            padding: 10px 15px; 
+            background: rgba(255, 69, 0, 0.8); 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            z-index: 10002;
+            width: auto;
+        }
+        
+        #ar-loading-overlay { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(255,255,255,0.9); /* 亮色半透明背景 */
+            color: #333333; 
+            display: none; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10001; 
+            text-align: center;
+        }
+        #reload-ar-btn {
+            background-color: #ff4500;
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        /* 奖励卡片样式 (适应亮色主题) */
+        #reward-card-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            z-index: 10003;
+        }
+        #reward-card {
+            background: #ffffff; /* 纯白卡片背景 */
+            color: #333333;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 350px;
+            text-align: center;
+            border: 2px solid #007aff;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+        #close-reward-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 2em;
+            cursor: pointer;
+            color: #cccccc; 
+        }
+        .reward-content {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f5; /* 浅灰色内容背景 */
+            border-radius: 10px;
+        }
+        .coupon-code {
+            margin-top: 15px;
+            border-top: 1px dashed #007aff;
+            padding-top: 10px;
+        }
+        #reward-code {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #e60000; 
+            margin: 5px 0 0;
+        }
+        #reward-action-btn {
+            display: block;
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #34c759;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #reward-action-btn:hover {
+            background-color: #2b9942;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-ui">
+    <h1>城市柔性舱：实时定位</h1>
+
+    <div class="status-box">
+        <p>您的实时经度：<span id="user-lon">--</span></p>
+        <p>您的实时纬度：<span id="user-lat">--</span></p>
+        <p>距目标距离：<span id="distance">--</span> 米</p>
+    </div>
+
+    <div id="unlock-status">🛰️ 正在加载任务数据...</div>
+
+    <button id="ar-button" disabled>解锁 AR 互动（距离目标太远）</button>
+</div>
+
+<div id="ar-scene-container">
+    
+    <div id="ar-loading-overlay">
+        <h2>正在请求摄像头并加载任务模型...</h2>
+        <p style="margin-top: 15px;">请允许权限。如果长时间无画面，请尝试重新点击 AR 按钮。</p>
+    </div>
+    
+    <a-scene id="ar-scene" embedded arjs='sourceType: webcam;'>
+        <a-assets>
+            <a-asset-item id="robot-model" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/asset-management/models/robot.gltf"></a-asset-item>
+            <a-asset-item id="cube-model" src="https://cdn.jsdelivr.net/gh/aframevr/aframe/examples/showcase/asset-management/models/cubes.gltf"></a-asset-item>
+        </a-assets>
+    </a-scene>
+    <button id="exit-ar-btn">退出 AR</button>
+</div>
+
+<div id="reward-card-overlay">
+    <div id="reward-card">
+        <span id="close-reward-btn">&times;</span>
+        <h2>🎉 任务完成！获得奖励！</h2>
+        <div class="reward-content">
+            <h3 id="reward-name">任务奖励：</h3>
+            <p id="reward-description">恭喜您完成所有任务！</p>
+            <div class="coupon-code">
+                <p>专属兑换码：</p>
+                <p id="reward-code">FLEX-873-ARX</p>
+            </div>
+        </div>
+        <a id="reward-action-btn" href="#" target="_blank">立即查看/兑换</a>
+    </div>
+</div>
+
+<script>
+    // ==========================================================
+    // 1. 任务数据设定 (MVP 6.0: 从外部 JSON 文件加载)
+    // ==========================================================
+    const UNLOCK_DISTANCE_METERS = 50; 
+    let MISSIONS = []; // 定义空数组，等待加载
+    let currentMissionIndex = 0;
+    let currentTarget = null; 
+
+    // 异步函数：加载任务数据 (已修复路径问题)
+    async function loadMissions() {
+        try {
+            // 使用绝对路径 '/missions.json' 修复加载问题
+            const response = await fetch('/missions.json'); 
+            if (!response.ok) {
+                // 如果返回的不是 200 状态码，抛出错误
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            MISSIONS = await response.json();
+            
+            if (MISSIONS.length === 0) {
+                document.getElementById('unlock-status').textContent = '❌ 任务数据为空，请检查 missions.json 文件。';
+                return false;
+            }
+
+            // 成功加载后，设置第一个目标
+            currentTarget = MISSIONS[currentMissionIndex];
+            document.getElementById('unlock-status').textContent = '🛰️ 正在获取您的实时位置...'; // 恢复定位提示
+            return true;
+
+        } catch (error) {
+            console.error('加载任务数据失败:', error);
+            document.getElementById('unlock-status').textContent = '❌ 任务文件 (missions.json) 加载失败，请检查文件路径和部署状态。';
+            return false;
+        }
+    }
+
+    // ==========================================================
+    // 2. 距离计算函数 (Haversine 公式)
+    // ==========================================================
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; 
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    }
+
+    // ==========================================================
+    // 3. 实时定位与更新函数
+    // ==========================================================
+    let watchId;
+
+    function updateLocation(position) {
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+
+        document.getElementById('user-lat').textContent = userLat.toFixed(6);
+        document.getElementById('user-lon').textContent = userLon.toFixed(6);
+
+        if (!currentTarget) return;
+
+        const distance = calculateDistance(userLat, userLon, currentTarget.lat, currentTarget.lon);
+        document.getElementById('distance').textContent = distance.toFixed(2);
+
+        const unlockStatusElement = document.getElementById('unlock-status');
+        const arButton = document.getElementById('ar-button');
+
+        if (distance <= UNLOCK_DISTANCE_METERS) {
+            unlockStatusElement.textContent = `🔓 任务 [${currentTarget.name}] 已解锁！`;
+            unlockStatusElement.className = 'unlocked';
+            arButton.textContent = `进入 AR 沉浸式互动 (${currentTarget.name})`;
+            arButton.disabled = false;
+        } else {
+            unlockStatusElement.textContent = `🚨 任务 [${currentTarget.name}] 太远，还需靠近 ${Math.round(distance - UNLOCK_DISTANCE_METERS)} 米`;
+            unlockStatusElement.className = '';
+            arButton.textContent = `解锁 AR 互动（距离目标太远）`;
+            arButton.disabled = true;
+        }
+    }
+
+    function startGeolocation() {
+        if (!navigator.geolocation) {
+            document.getElementById('unlock-status').textContent = '❌ 您的设备不支持地理位置服务。';
+            return;
+        }
+
+        watchId = navigator.geolocation.watchPosition(updateLocation, handleLocationError, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        });
+    }
+
+    function handleLocationError(error) {
+        let message;
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                message = "❌ 请授权应用使用您的地理位置信息。";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                message = "📡 位置信息不可用，请检查网络或 GPS。";
+                break;
+            case error.TIMEOUT:
+                message = "⏳ 获取位置超时，请重试。";
+                break;
+            default:
+                message = "位置获取发生未知错误。";
+                break;
+        }
+        document.getElementById('unlock-status').textContent = message;
+        console.error(error);
+    }
+    
+    // ==========================================================
+    // 5.6 奖励卡片显示函数 
+    // ==========================================================
+    function showRewardCard(message, taskName) {
+        // 1. 设置卡片内容
+        document.getElementById('reward-name').textContent = `任务：${taskName}`;
+        document.getElementById('reward-description').textContent = message;
+        
+        // 随机生成一个奖励码 (真实项目中会从后端API获取)
+        const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
+        document.getElementById('reward-code').textContent = randomCode;
+        
+        // 2. 显示卡片 (将display设置为flex)
+        document.getElementById('reward-card-overlay').style.display = 'flex';
+    }
+
+    // ==========================================================
+    // 5.5 任务完成逻辑 
+    // ==========================================================
+    function completeMission(event) {
+        const model = event.target;
+        
+        // 1. 触发模型消失/闪烁动画
+        model.setAttribute('animation__out', {
+            property: 'scale',
+            to: '0 0 0', // 缩小到消失
+            dur: 500,    // 动画持续 500 毫秒
+            easing: 'easeInQuad'
+        });
+
+        // 2. 显示奖励卡片 
+        showRewardCard(currentTarget.description, currentTarget.name);
+
+        // 3. 等待动画完成后，执行任务切换
+        setTimeout(() => {
+            
+            // 检查是否是最后一个任务
+            if (currentMissionIndex < MISSIONS.length - 1) {
+                // 还有下一个任务
+                currentMissionIndex++; 
+                currentTarget = MISSIONS[currentMissionIndex];
+                
+                // 奖励卡片关闭后会调用 exitAR(false)
+            } else {
+                // 所有任务已完成
+                exitAR(true); // 终态退出 AR，并停止定位
+                
+                // 终态显示
+                const unlockStatusElement = document.getElementById('unlock-status');
+                unlockStatusElement.textContent = '🎉 恭喜！您已完成所有城市柔性舱任务！';
+                unlockStatusElement.className = 'unlocked';
+                document.getElementById('ar-button').style.display = 'none';
+            }
+        }, 600); 
+    }
+
+    // ==========================================================
+    // 5. AR 场景控制函数 (使用原生 API 预先授权)
+    // ==========================================================
+    function startAR() {
+        const arContainer = document.getElementById('ar-scene-container');
+        const mainUi = document.getElementById('main-ui');
+        const arScene = document.getElementById('ar-scene'); 
+        const loadingOverlay = document.getElementById('ar-loading-overlay'); 
+        
+        if (!currentTarget) {
+            console.error('任务目标未加载。');
+            document.getElementById('unlock-status').textContent = '⚠️ 任务目标未就绪，请重试。';
+            return;
+        }
+
+        mainUi.style.display = 'none';
+        arContainer.style.display = 'block';
+
+        if (watchId) { navigator.geolocation.clearWatch(watchId); }
+        
+        // 步骤 1: 显示加载提示
+        loadingOverlay.style.display = 'flex'; 
+        loadingOverlay.innerHTML = '<h2>正在请求摄像头并加载任务模型...</h2><p style="margin-top: 15px;">请允许权限。如果长时间无画面，请尝试重新点击 AR 按钮。</p>';
+
+
+        // 【原生摄像头权限请求 - 关键步骤】
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            // 请求后置摄像头 ('environment')
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    // 成功获取权限：释放流，并继续 AR 场景的加载
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // --- AR 场景构建逻辑 ---
+                    // 2. 清空旧内容 (除了 a-assets)
+                    const children = Array.from(arScene.children);
+                    children.forEach(child => {
+                        if (child.tagName !== 'A-ASSETS') {
+                            arScene.removeChild(child);
+                        }
+                    });
+                    
+                    // 3. 添加相机实体
+                    const camera = document.createElement('a-entity');
+                    camera.setAttribute('camera', '');
+                    arScene.appendChild(camera);
+
+                    // 4. 添加动态模型
+                    const model = document.createElement('a-gltf-model');
+                    model.setAttribute('src', currentTarget.model_src);
+                    model.setAttribute('position', '0 0 -3'); // 调整位置
+                    model.setAttribute('scale', '0.5 0.5 0.5'); 
+                    model.setAttribute('rotation', '0 0 0');
+                    arScene.appendChild(model);
+                    
+                    // 5. 添加动态文本
+                    const text = document.createElement('a-text');
+                    text.setAttribute('value', currentTarget.text_content);
+                    text.setAttribute('position', '-0.7 1.5 -3');
+                    text.setAttribute('color', '#007aff'); 
+                    text.setAttribute('width', '2');
+                    arScene.appendChild(text);
+                    
+                    // 6. 添加模型点击事件 (触发任务完成)
+                    model.addEventListener('click', completeMission);
+                    
+                    // 7. 监听加载完成事件并隐藏提示
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 1000); // 1秒后隐藏加载层
+
+                })
+                .catch(function(err) {
+                    // 权限被拒绝或发生错误
+                    loadingOverlay.innerHTML = '<h2>❌ 摄像头权限获取失败！</h2><p>请检查系统设置中浏览器对摄像头和运动传感器的授权。</p><button id="reload-ar-btn" style="margin-top:20px;">重新尝试</button>';
+                    document.getElementById('reload-ar-btn').addEventListener('click', startAR);
+                });
+        } else {
+            // 不支持 MediaDevices API
+            loadingOverlay.innerHTML = '<h2>❌ 设备不支持 Web AR。</h2><p>请使用最新版 Chrome 或 Safari 浏览器。</p>';
+        }
+    }
+
+    function exitAR(finished = false) {
+        const arContainer = document.getElementById('ar-scene-container');
+        const mainUi = document.getElementById('main-ui');
+
+        arContainer.style.display = 'none';
+        mainUi.style.display = 'block';
+
+        if (finished === false) {
+            // 如果任务未全部完成，则重新启动 LBS 追踪下一个目标
+            startGeolocation(); 
+        }
+    }
+
+
+    // ==========================================================
+    // 6. 事件监听和启动
+    // ==========================================================
+
+    // 注册 Service Worker (用于离线功能)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                console.log('SW registered: ', registration);
+            }).catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
+        });
+    }
+
+    // 启动逻辑：先加载任务，再启动定位
+    window.onload = async function() {
+        const isLoaded = await loadMissions();
+        if (isLoaded) {
+            startGeolocation();
+        }
+    };
+
+    document.getElementById('ar-button').addEventListener('click', startAR);
+    
+    // 退出按钮默认为普通退出
+    document.getElementById('exit-ar-btn').addEventListener('click', function() {
+      
