@@ -299,7 +299,7 @@
     let currentTarget = MISSIONS[currentMissionIndex]; 
 
 
-    // 同步初始化函数 (基于旧逻辑)
+    // 同步初始化函数
     function initializeMissions() {
         if (MISSIONS.length === 0) {
             document.getElementById('unlock-status').textContent = '❌ 任务数据为空，无法启动。';
@@ -367,7 +367,7 @@
             return;
         }
 
-        // **定位速度优化：移除 enableHighAccuracy: true**
+        // **定位速度优化：移除 enableHighAccuracy: true 以加速首次定位**
         watchId = navigator.geolocation.watchPosition(updateLocation, handleLocationError, {
             timeout: 5000,
             maximumAge: 0
@@ -505,6 +505,7 @@
 
                 })
                 .catch(function(err) {
+                    // 权限失败或浏览器无法访问摄像头
                     loadingOverlay.innerHTML = '<h2>❌ 摄像头权限获取失败！</h2><p>请检查系统设置中浏览器对摄像头和运动传感器的授权。</p><button id="reload-ar-btn" style="margin-top:20px;">重新尝试</button>';
                     document.getElementById('reload-ar-btn').addEventListener('click', startAR);
                 });
