@@ -79,7 +79,7 @@
 
 <script>
     // ==========================================================
-    // 1. 任务数据设定 (已设置为您上次的定位数据，方便直接解锁测试)
+    // 1. 任务数据设定 
     // ==========================================================
     const UNLOCK_DISTANCE_METERS = 50; // 解锁距离阈值：50米
 
@@ -89,7 +89,7 @@
             id: 1,
             name: "入口导览机器人",
             description: "点击查看商圈活动介绍！",
-            lat: 23.324856,     // 任务点 1 (和您的位置相同，立即解锁)
+            lat: 23.324856,     // 任务点 1 (和您的位置相同，方便立即解锁)
             lon: 112.707622,
             model_src: "#robot-model", 
             text_content: "任务 1: 欢迎来到柔性舱体验！"
@@ -128,7 +128,7 @@
     }
 
     // ==========================================================
-    // 3. 实时定位与更新函数 (保持不变)
+    // 3. 实时定位与更新函数
     // ==========================================================
     let watchId;
 
@@ -158,7 +158,6 @@
         }
     }
 
-    // ... (handleLocationError 和 startGeolocation 函数保持不变) ...
     function startGeolocation() {
         if (!navigator.geolocation) {
             document.getElementById('unlock-status').textContent = '❌ 您的设备不支持地理位置服务。';
@@ -191,36 +190,57 @@
         document.getElementById('unlock-status').textContent = message;
         console.error(error);
     }
-    // ...
-
+    
     // ==========================================================
-    // 5.5 任务完成逻辑 (新增)
+    // 5.6 奖励卡片显示函数 (新增)
     // ==========================================================
-    function completeMission() {
-        alert(`恭喜您完成任务 [${currentTarget.name}]！`);
-        
-        // 检查是否是最后一个任务
-        if (currentMissionIndex < MISSIONS.length - 1) {
-            // 还有下一个任务
-            currentMissionIndex++; 
-            currentTarget = MISSIONS[currentMissionIndex];
-            
-            // 退出 AR，回到主界面并追踪下一个目标
-            exitAR(false); 
-        } else {
-            // 所有任务已完成
-            exitAR(true); 
-            
-            // 终态显示
-            const unlockStatusElement = document.getElementById('unlock-status');
-            unlockStatusElement.textContent = '🎉 恭喜！您已完成所有城市柔性舱任务！';
-            unlockStatusElement.className = 'unlocked';
-            document.getElementById('ar-button').style.display = 'none'; // 隐藏按钮
-        }
+    function showRewardCard(message, taskName) {
+        // 实际项目中可以替换为一个漂亮的 DIV 弹窗或 H5 奖励页面
+        alert(`【任务奖励】\n恭喜您完成任务 [${taskName}]！\n奖励内容：${message}`);
     }
 
     // ==========================================================
-    // 5. AR 场景控制函数 (已修改加载提示和模型事件)
+    // 5.5 任务完成逻辑 (已修改为模型动画和奖励卡片)
+    // ==========================================================
+    function completeMission(event) {
+        const model = event.target;
+        
+        // 1. 触发模型消失/闪烁动画
+        model.setAttribute('animation__out', {
+            property: 'scale',
+            to: '0 0 0', // 缩小到消失
+            dur: 500,    // 动画持续 500 毫秒
+            easing: 'easeInQuad'
+        });
+
+        // 2. 显示奖励卡片 
+        showRewardCard(currentTarget.description, currentTarget.name);
+
+        // 3. 等待动画完成后，执行任务切换
+        setTimeout(() => {
+            
+            // 检查是否是最后一个任务
+            if (currentMissionIndex < MISSIONS.length - 1) {
+                // 还有下一个任务
+                currentMissionIndex++; 
+                currentTarget = MISSIONS[currentMissionIndex];
+                
+                exitAR(false); // 退出 AR，回到主界面并追踪下一个目标
+            } else {
+                // 所有任务已完成
+                exitAR(true); 
+                
+                // 终态显示
+                const unlockStatusElement = document.getElementById('unlock-status');
+                unlockStatusElement.textContent = '🎉 恭喜！您已完成所有城市柔性舱任务！';
+                unlockStatusElement.className = 'unlocked';
+                document.getElementById('ar-button').style.display = 'none';
+            }
+        }, 600); // 确保等待时间大于动画时间
+    }
+
+    // ==========================================================
+    // 5. AR 场景控制函数
     // ==========================================================
     function startAR() {
         const arContainer = document.getElementById('ar-scene-container');
@@ -293,6 +313,17 @@
     // ==========================================================
     // 6. 事件监听和启动
     // ==========================================================
+
+    // 注册 Service Worker (用于离线功能)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                console.log('SW registered: ', registration);
+            }).catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
+        });
+    }
 
     window.onload = startGeolocation;
 
