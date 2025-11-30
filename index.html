@@ -149,6 +149,11 @@
             font-size: 1.8em;
             margin-bottom: 10px;
         }
+        #reload-ar-btn {
+            background-color: #ff4500;
+            width: auto;
+            padding: 10px 20px;
+        }
 
         /* 奖励卡片样式 (MVP 5.0) */
         #reward-card-overlay {
@@ -384,7 +389,7 @@
     }
     
     // ==========================================================
-    // 5.6 奖励卡片显示函数 (替换为显示 H5 卡片)
+    // 5.6 奖励卡片显示函数 
     // ==========================================================
     function showRewardCard(message, taskName) {
         // 1. 设置卡片内容
@@ -400,7 +405,7 @@
     }
 
     // ==========================================================
-    // 5.5 任务完成逻辑 (已修改为模型动画和奖励卡片)
+    // 5.5 任务完成逻辑 
     // ==========================================================
     function completeMission(event) {
         const model = event.target;
@@ -425,10 +430,10 @@
                 currentMissionIndex++; 
                 currentTarget = MISSIONS[currentMissionIndex];
                 
-                exitAR(false); // 退出 AR，回到主界面并追踪下一个目标
+                // 注意：这里不再调用 exitAR，exitAR(false) 被移到 close-reward-btn 监听中
             } else {
                 // 所有任务已完成
-                exitAR(true); 
+                exitAR(true); // 终态退出 AR，并停止定位
                 
                 // 终态显示
                 const unlockStatusElement = document.getElementById('unlock-status');
@@ -440,13 +445,13 @@
     }
 
     // ==========================================================
-    // 5. AR 场景控制函数
+    // 5. AR 场景控制函数 (使用原生 API 预先授权)
     // ==========================================================
     function startAR() {
         const arContainer = document.getElementById('ar-scene-container');
         const mainUi = document.getElementById('main-ui');
         const arScene = document.getElementById('ar-scene'); 
-        const loadingOverlay = document.getElementById('ar-loading-overlay'); // 获取加载层
+        const loadingOverlay = document.getElementById('ar-loading-overlay'); 
         
         mainUi.style.display = 'none';
         arContainer.style.display = 'block';
@@ -455,44 +460,66 @@
         
         // 步骤 1: 显示加载提示
         loadingOverlay.style.display = 'flex'; 
+        loadingOverlay.innerHTML = '<h2>正在请求摄像头并加载任务模型...</h2><p style="margin-top: 15px;">请允许权限。如果长时间无画面，请尝试重新点击 AR 按钮。</p>';
 
-        // 1. 清空旧内容 (除了 a-assets)
-        const children = Array.from(arScene.children);
-        children.forEach(child => {
-            if (child.tagName !== 'A-ASSETS') {
-                arScene.removeChild(child);
-            }
-        });
-        
-        // 2. 添加相机实体
-        const camera = document.createElement('a-entity');
-        camera.setAttribute('camera', '');
-        arScene.appendChild(camera);
 
-        // 3. 添加动态模型
-        const model = document.createElement('a-gltf-model');
-        model.setAttribute('src', currentTarget.model_src);
-        model.setAttribute('position', '0 0 -3'); // 调整位置
-        model.setAttribute('scale', '0.5 0.5 0.5'); 
-        model.setAttribute('rotation', '0 0 0');
-        arScene.appendChild(model);
-        
-        // 4. 添加动态文本
-        const text = document.createElement('a-text');
-        text.setAttribute('value', currentTarget.text_content);
-        text.setAttribute('position', '-0.7 1.5 -3');
-        text.setAttribute('color', '#FFC65D');
-        text.setAttribute('width', '2');
-        arScene.appendChild(text);
-        
-        // 5. 添加模型点击事件 (触发任务完成)
-        model.addEventListener('click', completeMission);
-        
-        // 6. 监听加载完成事件并隐藏提示
-        arScene.addEventListener('loaded', function () {
-            // 在所有模型和资源加载完成后，隐藏加载提示
-            loadingOverlay.style.display = 'none';
-        });
+        // 【原生摄像头权限请求 - 关键步骤】
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    // 成功获取权限：释放流，并继续 AR 场景的加载
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // --- AR 场景构建逻辑 ---
+                    // 2. 清空旧内容 (除了 a-assets)
+                    const children = Array.from(arScene.children);
+                    children.forEach(child => {
+                        if (child.tagName !== 'A-ASSETS') {
+                            arScene.removeChild(child);
+                        }
+                    });
+                    
+                    // 3. 添加相机实体
+                    const camera = document.createElement('a-entity');
+                    camera.setAttribute('camera', '');
+                    arScene.appendChild(camera);
+
+                    // 4. 添加动态模型
+                    const model = document.createElement('a-gltf-model');
+                    model.setAttribute('src', currentTarget.model_src);
+                    model.setAttribute('position', '0 0 -3'); // 调整位置
+                    model.setAttribute('scale', '0.5 0.5 0.5'); 
+                    model.setAttribute('rotation', '0 0 0');
+                    arScene.appendChild(model);
+                    
+                    // 5. 添加动态文本
+                    const text = document.createElement('a-text');
+                    text.setAttribute('value', currentTarget.text_content);
+                    text.setAttribute('position', '-0.7 1.5 -3');
+                    text.setAttribute('color', '#FFC65D');
+                    text.setAttribute('width', '2');
+                    arScene.appendChild(text);
+                    
+                    // 6. 添加模型点击事件 (触发任务完成)
+                    model.addEventListener('click', completeMission);
+                    
+                    // 7. 监听加载完成事件并隐藏提示
+                    // 注意：由于原生授权已完成，加载速度会快很多
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 1000); // 1秒后隐藏加载层
+                    // --- AR 场景构建逻辑结束 ---
+
+                })
+                .catch(function(err) {
+                    // 权限被拒绝或发生错误
+                    loadingOverlay.innerHTML = '<h2>❌ 摄像头权限获取失败！</h2><p>请检查系统设置中浏览器对摄像头和运动传感器的授权。</p><button id="reload-ar-btn" style="margin-top:20px;">重新尝试</button>';
+                    document.getElementById('reload-ar-btn').addEventListener('click', startAR);
+                });
+        } else {
+            // 不支持 MediaDevices API
+            loadingOverlay.innerHTML = '<h2>❌ 设备不支持 Web AR。</h2><p>请使用最新版 Chrome 或 Safari 浏览器。</p>';
+        }
     }
 
     function exitAR(finished = false) {
@@ -503,10 +530,10 @@
         mainUi.style.display = 'block';
 
         if (finished === false) {
-            // 如果任务未完成 (只是普通退出 AR)，则重新启动 LBS 追踪下一个目标
+            // 如果任务未全部完成，则重新启动 LBS 追踪下一个目标
             startGeolocation(); 
         }
-        // 如果任务完成了 (finished = true)，则不重启定位，保持在终态界面
+        // 如果任务全部完成了 (finished = true)，则不重启定位，保持在终态界面
     }
 
 
@@ -528,14 +555,17 @@
     window.onload = startGeolocation;
 
     document.getElementById('ar-button').addEventListener('click', startAR);
+    
+    // 恢复：退出按钮默认为普通退出
     document.getElementById('exit-ar-btn').addEventListener('click', function() {
-        // 退出按钮默认为普通退出
         exitAR(false); 
     });
 
     // 新增：监听奖励卡片的关闭按钮
     document.getElementById('close-reward-btn').addEventListener('click', function() {
         document.getElementById('reward-card-overlay').style.display = 'none';
+        // 在卡片关闭后，执行退出 AR 逻辑，以便返回主界面并开始定位下一个任务
+        exitAR(false);
     });
 </script>
 
