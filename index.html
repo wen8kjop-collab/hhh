@@ -368,12 +368,33 @@
     }
     
     // ==========================================================
-    // 5.6 奖励卡片显示函数 (新增)
-    // ==========================================================
-    // ==========================================================
 // 5.6 奖励卡片显示函数 (替换为显示 H5 卡片)
 // ==========================================================
 function showRewardCard(message, taskName) {
+    // 1. 设置卡片内容
+    document.getElementById('reward-name').textContent = `任务：${taskName}`;
+    document.getElementById('reward-description').textContent = message;
+    
+    // 随机生成一个奖励码 (真实项目中会从后端API获取)
+    const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
+    document.getElementById('reward-code').textContent = randomCode;
+    
+    // 2. 显示卡片 (将display设置为flex)
+    document.getElementById('reward-card-overlay').style.display = 'flex';
+}
+
+function showRewardCard(message, taskName) { // 
+    // 1. 设置卡片内容
+    document.getElementById('reward-name').textContent = `任务：${taskName}`;
+    document.getElementById('reward-description').textContent = message;
+    
+    // 随机生成一个奖励码
+    const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
+    document.getElementById('reward-code').textContent = randomCode;
+    
+    // 2. 显示卡片 (将display设置为flex)
+    document.getElementById('reward-card-overlay').style.display = 'flex';
+} // 
     // 1. 设置卡片内容
     document.getElementById('reward-name').textContent = `任务：${taskName}`;
     document.getElementById('reward-description').textContent = message;
@@ -527,6 +548,10 @@ function showRewardCard(message, taskName) {
     document.getElementById('exit-ar-btn').addEventListener('click', function() {
         // 退出按钮默认为普通退出
         exitAR(false); 
+    });
+    // 新增：监听奖励卡片的关闭按钮
+    document.getElementById('close-reward-btn').addEventListener('click', function() {
+        document.getElementById('reward-card-overlay').style.display = 'none';
     });
 </script><div id="reward-card-overlay">
     <div id="reward-card">
