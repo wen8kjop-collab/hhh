@@ -370,7 +370,22 @@
     // ==========================================================
     // 5.6 奖励卡片显示函数 (新增)
     // ==========================================================
-    function showRewardCard(message, taskName) {
+    // ==========================================================
+// 5.6 奖励卡片显示函数 (替换为显示 H5 卡片)
+// ==========================================================
+function showRewardCard(message, taskName) {
+    // 1. 设置卡片内容
+    document.getElementById('reward-name').textContent = `任务：${taskName}`;
+    document.getElementById('reward-description').textContent = message;
+    
+    // 随机生成一个奖励码 (真实项目中会从后端API获取)
+    const randomCode = 'FLEX-' + Math.floor(Math.random() * 900) + 100 + '-ARX';
+    document.getElementById('reward-code').textContent = randomCode;
+    
+    // 2. 显示卡片 (将display设置为flex)
+    document.getElementById('reward-card-overlay').style.display = 'flex';
+}
+ {
         // 实际项目中可以替换为一个漂亮的 DIV 弹窗或 H5 奖励页面
         alert(`【任务奖励】\n恭喜您完成任务 [${taskName}]！\n奖励内容：${message}`);
     }
@@ -502,6 +517,11 @@
     }
 
     window.onload = startGeolocation;
+        // 新增：监听奖励卡片的关闭按钮
+    document.getElementById('close-reward-btn').addEventListener('click', function() {
+        document.getElementById('reward-card-overlay').style.display = 'none';
+    });
+
 
     document.getElementById('ar-button').addEventListener('click', startAR);
     document.getElementById('exit-ar-btn').addEventListener('click', function() {
